@@ -1,5 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { DEFAULT_CURRENCY } from '@/money/currencies';
+
 type Migration = (db: SQLiteDatabase) => Promise<void>;
 
 const DDL_V1 = `
@@ -174,7 +176,6 @@ const DEFAULT_CATEGORIES: SeedCategory[] = [
 
 const migration1: Migration = async (db) => {
   await db.execAsync(DDL_V1);
-  const now = Date.now();
   let order = 0;
   for (const c of DEFAULT_CATEGORIES) {
     await db.runAsync(
@@ -185,8 +186,23 @@ const migration1: Migration = async (db) => {
   }
 };
 
+// v2: seed a default "Net Cash" container so the app is usable immediately,
+// without forcing the user to create an account first. Only seeds when the
+// accounts table is empty, so existing users (and re-runs) are never affected.
+export const DEFAULT_ACCOUNT_ID = 'acc_net_cash';
+
+const migration2: Migration = async (db) => {
+  const row = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM accounts');
+  if ((row?.n ?? 0) > 0) return;
+  await db.runAsync(
+    `INSERT INTO accounts (id, name, type, currency, opening_balance, icon, color, archived, sort_order, created_at)
+     VALUES (?, 'Net Cash', 'cash', ?, 0, 'cash', '#0F766E', 0, 0, ?)`,
+    [DEFAULT_ACCOUNT_ID, DEFAULT_CURRENCY, Date.now()],
+  );
+};
+
 // Append future migrations here; index in the array == target user_version.
-const migrations: Migration[] = [migration1];
+const migrations: Migration[] = [migration1, migration2];
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');

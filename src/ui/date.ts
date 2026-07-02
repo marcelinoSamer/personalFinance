@@ -1,4 +1,4 @@
-import { getLocale } from '@/i18n';
+import { getLocale, t } from '@/i18n';
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_AR = [
@@ -57,4 +57,28 @@ export function shortMonth(ts: number): string {
   const d = new Date(ts);
   const months = getLocale() === 'ar' ? MONTHS_AR : MONTHS_EN;
   return months[d.getMonth()];
+}
+
+/** Bucket key for grouping by calendar day (local time). */
+export function dayKey(ts: number): number {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/**
+ * Human-readable day label: "Today" / "Yesterday" for recent days,
+ * "23 Jun" for the current year, "23 Jun 2024" for older.
+ */
+export function formatDayHeader(ts: number): string {
+  const now = Date.now();
+  const today = dayKey(now);
+  const target = dayKey(ts);
+  if (target === today) return t('common.today');
+  if (target === today - 86_400_000) return t('common.yesterday');
+  const d = new Date(ts);
+  const months = getLocale() === 'ar' ? MONTHS_AR : MONTHS_EN;
+  const sameYear = d.getFullYear() === new Date(now).getFullYear();
+  return sameYear
+    ? `${d.getDate()} ${months[d.getMonth()]}`
+    : `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }

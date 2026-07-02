@@ -106,7 +106,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: t('settings.title') }} />
+      <Stack.Screen options={{ title: t('more.accountSettings') }} />
 
       <List.Subheader>{t('settings.general')}</List.Subheader>
       <SelectField

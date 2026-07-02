@@ -32,6 +32,7 @@ export default function AssetEditScreen() {
   useEffect(() => {
     if (!id) return;
     getAsset(id).then((a) => {
+      
       if (!a) return;
       setName(a.name);
       setType(a.type);
