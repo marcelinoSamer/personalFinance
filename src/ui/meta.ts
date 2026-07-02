@@ -5,6 +5,8 @@ export const ACCOUNT_TYPE_META: Record<AccountType, { icon: string; color: strin
   bank: { icon: 'bank', color: '#1E88E5' },
   wallet: { icon: 'wallet', color: '#8E24AA' },
   savings: { icon: 'piggy-bank', color: '#00897B' },
+  // Hidden account behind a "Just this time" box; not offered in the type picker.
+  box: { icon: 'party-popper', color: '#5C6BC0' },
 };
 
 export const ASSET_TYPE_META: Record<AssetType, { icon: string; color: string }> = {

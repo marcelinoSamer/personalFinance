@@ -54,6 +54,12 @@ export default function MoreScreen() {
           icon: 'target',
           route: '/goals',
         },
+        {
+          title: t('boxes.title'),
+          description: t('more.boxesDesc'),
+          icon: 'party-popper',
+          route: '/boxes',
+        },
       ],
     },
     {

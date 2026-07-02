@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { router } from 'expo-router';
 import { Banner, SegmentedButtons, Text, useTheme } from 'react-native-paper';
 import { PieChart, LineChart } from 'react-native-gifted-charts';
@@ -13,7 +13,7 @@ import { convert, buildRateLookup } from '@/money/fx';
 import { formatCompact } from '@/money/format';
 import { categoryLabel } from '@/ui/labels';
 import { addMonths, monthRange, shortMonth } from '@/ui/date';
-import { expenseByCategory, merchantTotals } from '@/db/repositories/stats';
+import { expenseByBox, expenseByCategory, merchantTotals } from '@/db/repositories/stats';
 import { sumByKindCurrency } from '@/db/repositories/transactions';
 import { listRates } from '@/db/repositories/fxRates';
 import { useAsyncData } from '@/state/dataVersion';
@@ -26,6 +26,9 @@ interface CatRow {
   label: string;
   color: string;
   total: number;
+  /** True for "Just this time" boxes, shown as their own slice. */
+  isBox?: boolean;
+  boxId?: string;
 }
 
 interface TrendPoint {
@@ -66,8 +69,9 @@ export default function AnalyticsScreen() {
       return { ts, range: monthRange(ts) };
     });
 
-    const [catRows, merchRows, rates, ...trendSums] = await Promise.all([
+    const [catRows, boxRows, merchRows, rates, ...trendSums] = await Promise.all([
       expenseByCategory(range.from, range.to),
+      expenseByBox(range.from, range.to),
       merchantTotals(range.from, range.to, 'expense'),
       listRates(),
       ...trendRanges.map(({ range: r }) => sumByKindCurrency(r.from, r.to)),
@@ -91,6 +95,24 @@ export default function AnalyticsScreen() {
         label,
         color: r.category_color ?? theme.semantic.neutral,
         total: 0,
+      };
+      e.total += c.value;
+      catMap.set(key, e);
+    }
+    // "Just this time" boxes are their own slices, alongside the categories.
+    for (const r of boxRows) {
+      const c = convert(r.total, r.currency, display, lookup, display);
+      if (c.value == null) {
+        missingRates = true;
+        continue;
+      }
+      const key = `box:${r.box_id}`;
+      const e = catMap.get(key) ?? {
+        label: `🎉 ${r.box_name}`,
+        color: r.box_color ?? theme.colors.primary,
+        total: 0,
+        isBox: true,
+        boxId: r.box_id,
       };
       e.total += c.value;
       catMap.set(key, e);
@@ -205,8 +227,17 @@ export default function AnalyticsScreen() {
                 const share = data.categoriesTotal > 0
                   ? Math.round((c.total / data.categoriesTotal) * 100)
                   : 0;
+                const RowWrap = c.isBox ? Pressable : View;
                 return (
-                  <View key={c.label} style={styles.legendRow}>
+                  <RowWrap
+                    key={c.boxId ?? c.label}
+                    style={styles.legendRow}
+                    onPress={
+                      c.isBox && c.boxId
+                        ? () => router.push({ pathname: '/box-detail', params: { id: c.boxId! } })
+                        : undefined
+                    }
+                  >
                     <View style={styles.legendLeft}>
                       <View style={[styles.dot, { backgroundColor: c.color }]} />
                       <Text numberOfLines={1} style={styles.legendLabel}>
@@ -226,7 +257,7 @@ export default function AnalyticsScreen() {
                         variant="bodyMedium"
                       />
                     </View>
-                  </View>
+                  </RowWrap>
                 );
               })}
               {extra > 0 && (

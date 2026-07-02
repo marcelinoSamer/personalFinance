@@ -29,30 +29,37 @@ const FONT = {
     semibold: 'Inter_600SemiBold',
     bold: 'Inter_700Bold',
   },
+  // Money figures: Space Grotesk — a clean geometric grotesque with tabular
+  // numerals, so ledger columns align. Replaces the old serif figures.
+  numeric: {
+    medium: 'SpaceGrotesk_500Medium',
+    semibold: 'SpaceGrotesk_600SemiBold',
+    bold: 'SpaceGrotesk_700Bold',
+  },
 } as const;
 
 const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
 
 const RADIUS = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
 
-// Numerals + headlines render in the serif; UI/body in the grotesque.
+// Money figures render in the numeric grotesque; headlines in the serif; UI in Inter.
 const TYPE = {
   moneyHero: {
-    fontFamily: FONT.serif.semibold,
+    fontFamily: FONT.numeric.semibold,
     fontSize: 40,
     lineHeight: 46,
     letterSpacing: -0.5,
     fontVariant: ['tabular-nums'],
   },
   moneyLg: {
-    fontFamily: FONT.serif.semibold,
+    fontFamily: FONT.numeric.semibold,
     fontSize: 24,
     lineHeight: 28,
     letterSpacing: -0.3,
     fontVariant: ['tabular-nums'],
   },
   moneyRow: {
-    fontFamily: FONT.sans.semibold,
+    fontFamily: FONT.numeric.medium,
     fontSize: 15,
     letterSpacing: 0.1,
     fontVariant: ['tabular-nums'],

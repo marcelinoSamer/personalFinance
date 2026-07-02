@@ -12,6 +12,7 @@ const BACKUP_VERSION = 1;
 const TABLES = [
   'categories',
   'accounts',
+  'event_boxes',
   'assets',
   'fx_rates',
   'transactions',

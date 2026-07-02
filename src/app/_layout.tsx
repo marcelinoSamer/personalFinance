@@ -16,6 +16,9 @@ import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
 import { Fraunces_500Medium } from '@expo-google-fonts/fraunces/500Medium';
 import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
 import { Fraunces_700Bold } from '@expo-google-fonts/fraunces/700Bold';
+import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
+import { SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk/600SemiBold';
+import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 
 import { getThemes, tokens } from '@/theme';
 import { useBootstrap } from '@/state/bootstrap';
@@ -45,6 +48,9 @@ export default function RootLayout() {
     Fraunces_500Medium,
     Fraunces_600SemiBold,
     Fraunces_700Bold,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
   });
 
   const dark = themeMode === 'system' ? systemScheme === 'dark' : themeMode === 'dark';

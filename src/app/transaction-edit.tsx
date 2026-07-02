@@ -12,6 +12,8 @@ import { parseAmount } from '@/ui/number';
 import { categoryLabel } from '@/ui/labels';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listCategories } from '@/db/repositories/categories';
+import { listBoxes } from '@/db/repositories/boxes';
+import { boxPhase } from '@/money/boxes';
 import {
   createTransaction,
   deleteTransaction,
@@ -22,11 +24,14 @@ import { bumpData } from '@/state/dataVersion';
 import type { Account, Category, TxKind } from '@/db/schema';
 
 export default function TransactionEditScreen() {
-  const params = useLocalSearchParams<{ id?: string; kind?: TxKind }>();
+  const params = useLocalSearchParams<{ id?: string; kind?: TxKind; boxId?: string }>();
   const editing = !!params.id;
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // account_id -> box account (an account whose type is 'box'), reachable in the
+  // container picker for expenses.
+  const [boxAccountIds, setBoxAccountIds] = useState<Set<string>>(new Set());
 
   const [kind, setKind] = useState<TxKind>(params.kind === 'income' ? 'income' : 'expense');
   const [amount, setAmount] = useState('');
@@ -37,12 +42,34 @@ export default function TransactionEditScreen() {
   const [occurredAt, setOccurredAt] = useState(Date.now());
 
   useEffect(() => {
-    Promise.all([listAccounts(false), listCategories()]).then(([accs, cats]) => {
-      setAccounts(accs);
-      setCategories(cats);
-      if (!params.id && accs.length) setAccountId((prev) => prev ?? accs[0].id);
-    });
-  }, [params.id]);
+    // Load every account (incl. archived + box accounts) so any existing tx
+    // resolves its currency; the picker itself narrows what is offered (below).
+    Promise.all([listAccounts(true, true), listCategories(), listBoxes()]).then(
+      ([accs, cats, boxes]) => {
+        const boxByAccount = new Map(boxes.map((b) => [b.account_id, b] as const));
+        // Boxes you can spend from: active or upcoming events.
+        const spendable = new Set(
+          boxes
+            .filter((b) => boxPhase(b) === 'active' || boxPhase(b) === 'upcoming')
+            .map((b) => b.account_id),
+        );
+        setBoxAccountIds(spendable);
+        setAccounts(accs);
+        setCategories(cats);
+        if (!params.id) {
+          if (params.boxId) {
+            const box = boxes.find((b) => b.id === params.boxId);
+            if (box) {
+              setAccountId((prev) => prev ?? box.account_id);
+              return;
+            }
+          }
+          const firstNormal = accs.find((a) => !boxByAccount.has(a.id) && a.archived === 0);
+          if (firstNormal) setAccountId((prev) => prev ?? firstNormal.id);
+        }
+      },
+    );
+  }, [params.id, params.boxId]);
 
   useEffect(() => {
     if (!params.id) return;
@@ -60,11 +87,29 @@ export default function TransactionEditScreen() {
 
   const account = accounts.find((a) => a.id === accountId) ?? null;
   const currency = account?.currency ?? 'EGP';
+  const usingBox = account != null && account.type === 'box';
 
-  const accountOptions: SelectOption[] = accounts.map((a) => ({
-    key: a.id,
-    label: `${a.name} (${a.currency})`,
-  }));
+  // Container options: normal containers, then spendable boxes (expenses only).
+  // A box already attached to this tx stays listed even once its event ends.
+  const accountOptions: SelectOption[] = useMemo(() => {
+    const normal = accounts.filter(
+      (a) => a.type !== 'box' && (a.archived === 0 || a.id === accountId),
+    );
+    const opts: SelectOption[] = normal.map((a) => ({ key: a.id, label: `${a.name} (${a.currency})` }));
+    if (kind === 'expense') {
+      const boxes = accounts.filter(
+        (a) => a.type === 'box' && (boxAccountIds.has(a.id) || a.id === accountId),
+      );
+      for (const b of boxes) {
+        opts.push({
+          key: b.id,
+          label: `🎉 ${b.name} (${b.currency})`,
+          description: t('boxes.justThisTime'),
+        });
+      }
+    }
+    return opts;
+  }, [accounts, boxAccountIds, kind, accountId]);
 
   const categoryOptions: SelectOption[] = useMemo(() => {
     const opts = categories
@@ -79,6 +124,14 @@ export default function TransactionEditScreen() {
       setCategoryId(null);
     }
   }, [kind, categoryId, categories]);
+
+  // Income can't go into a box (funding uses transfers); fall back to a container.
+  useEffect(() => {
+    if (kind === 'income' && usingBox) {
+      const firstNormal = accounts.find((a) => a.type !== 'box' && a.archived === 0);
+      setAccountId(firstNormal?.id ?? null);
+    }
+  }, [kind, usingBox, accounts]);
 
   const save = async () => {
     const amt = parseAmount(amount);
@@ -151,6 +204,11 @@ export default function TransactionEditScreen() {
           onChange={setAccountId}
           options={accountOptions}
         />
+      )}
+      {usingBox && (
+        <HelperText type="info" visible>
+          {t('boxes.justThisTime')}
+        </HelperText>
       )}
 
       <SelectField

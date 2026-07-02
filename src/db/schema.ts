@@ -3,7 +3,9 @@
 
 import type { CurrencyCode } from '@/money/currencies';
 
-export type AccountType = 'cash' | 'bank' | 'wallet' | 'savings';
+// 'box' = the hidden account behind a "Just this time" event box. Excluded
+// from normal account pickers/lists; its balance still counts in net worth.
+export type AccountType = 'cash' | 'bank' | 'wallet' | 'savings' | 'box';
 export type TxKind = 'income' | 'expense';
 export type TxSource = 'manual' | 'sms';
 export type AssetType = 'gold' | 'stock' | 'crypto' | 'property' | 'other';
@@ -101,6 +103,22 @@ export interface Goal {
   target_date: number | null;
   linked_account_id: string | null;
   note: string | null;
+  created_at: number;
+}
+
+export interface EventBox {
+  id: string;
+  /** The hidden 'box' account holding the money (funding in, spending out). */
+  account_id: string;
+  name: string;
+  budget_amount: number;
+  currency: CurrencyCode;
+  starts_at: number;
+  ends_at: number;
+  color: string | null;
+  note: string | null;
+  /** Set when the box is settled after the event (account gets archived). */
+  closed_at: number | null;
   created_at: number;
 }
 

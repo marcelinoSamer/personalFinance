@@ -17,9 +17,9 @@ type Variant =
   | 'bodySmall'
   | 'labelLarge';
 
-// Large figures read in the serif (heritage/banknote feel); smaller amounts in
-// the tabular grotesque so columns align.
-const SERIF_VARIANTS: Variant[] = ['displaySmall', 'headlineMedium', 'titleLarge'];
+// All money renders in the numeric grotesque (Space Grotesk); larger figures
+// take the semibold weight, smaller ones the medium so columns stay even.
+const LARGE_VARIANTS: Variant[] = ['displaySmall', 'headlineMedium', 'titleLarge'];
 
 interface Props {
   value: number;
@@ -62,9 +62,9 @@ export function MoneyText({
     color = theme.colors.onSurfaceVariant;
   }
 
-  const fontFamily = SERIF_VARIANTS.includes(variant)
-    ? theme.tokens.font.serif.semibold
-    : theme.tokens.font.sans.semibold;
+  const fontFamily = LARGE_VARIANTS.includes(variant)
+    ? theme.tokens.font.numeric.semibold
+    : theme.tokens.font.numeric.medium;
 
   return (
     <Text

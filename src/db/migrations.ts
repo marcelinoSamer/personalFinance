@@ -201,8 +201,30 @@ const migration2: Migration = async (db) => {
   );
 };
 
+// v3: "Just this time" event boxes. Each box owns a hidden account of type
+// 'box', so funding (transfers in) and event spending (expense transactions)
+// reuse the existing balance machinery; this table holds the event metadata.
+const migration3: Migration = async (db) => {
+  await db.execAsync(`
+CREATE TABLE event_boxes (
+  id TEXT PRIMARY KEY NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  budget_amount REAL NOT NULL,
+  currency TEXT NOT NULL,
+  starts_at INTEGER NOT NULL,
+  ends_at INTEGER NOT NULL,
+  color TEXT,
+  note TEXT,
+  closed_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX idx_event_boxes_account ON event_boxes(account_id);
+`);
+};
+
 // Append future migrations here; index in the array == target user_version.
-const migrations: Migration[] = [migration1, migration2];
+const migrations: Migration[] = [migration1, migration2, migration3];
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');

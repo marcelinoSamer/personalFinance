@@ -35,6 +35,21 @@ export async function listTransfers(limit?: number): Promise<TransferView[]> {
   );
 }
 
+/** Transfers touching one account (either side), newest first. */
+export async function listTransfersForAccount(accountId: string): Promise<TransferView[]> {
+  const db = await getDb();
+  return db.getAllAsync<TransferView>(
+    `SELECT tr.*, af.name AS from_name, at.name AS to_name,
+            af.currency AS from_currency, at.currency AS to_currency
+     FROM transfers tr
+     JOIN accounts af ON tr.from_account_id = af.id
+     JOIN accounts at ON tr.to_account_id = at.id
+     WHERE tr.from_account_id = ? OR tr.to_account_id = ?
+     ORDER BY tr.occurred_at DESC, tr.created_at DESC`,
+    [accountId, accountId],
+  );
+}
+
 export async function createTransfer(input: TransferInput): Promise<string> {
   const db = await getDb();
   const id = newId();

@@ -22,6 +22,16 @@ export function isSameDay(a: number, b: number): boolean {
   );
 }
 
+export function startOfDay(ts: number): number {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+}
+
+export function endOfDay(ts: number): number {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+}
+
 export function startOfMonth(ts: number): number {
   const d = new Date(ts);
   return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0).getTime();

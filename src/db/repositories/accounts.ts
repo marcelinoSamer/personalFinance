@@ -21,9 +21,17 @@ export async function getAccount(id: string): Promise<Account | null> {
   return db.getFirstAsync<Account>('SELECT * FROM accounts WHERE id = ?', [id]);
 }
 
-export async function listAccounts(includeArchived = false): Promise<Account[]> {
+/**
+ * Boxes ("Just this time" hidden accounts) are excluded by default so normal
+ * pickers/lists never see them; pass includeBoxes for box-aware screens.
+ */
+export async function listAccounts(includeArchived = false, includeBoxes = false): Promise<Account[]> {
   const db = await getDb();
-  const where = includeArchived ? '' : 'WHERE archived = 0';
+  const conds = [
+    ...(includeArchived ? [] : ['archived = 0']),
+    ...(includeBoxes ? [] : ["type <> 'box'"]),
+  ];
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   return db.getAllAsync<Account>(
     `SELECT * FROM accounts ${where} ORDER BY archived ASC, sort_order ASC, created_at ASC`,
   );
@@ -33,12 +41,13 @@ export async function listAccounts(includeArchived = false): Promise<Account[]> 
  * Lists accounts with their current balance:
  *   opening_balance + income - expense + transfers_in - (transfers_out + fees)
  * Fees are always charged in the source account's currency.
+ * Boxes are included by default: money inside a box is still net worth.
  */
 export async function listAccountsWithBalances(
   includeArchived = false,
 ): Promise<AccountWithBalance[]> {
   const db = await getDb();
-  const accounts = await listAccounts(includeArchived);
+  const accounts = await listAccounts(includeArchived, true);
 
   const tx = await db.getAllAsync<{ account_id: string; kind: string; total: number }>(
     `SELECT account_id, kind, SUM(amount) AS total FROM transactions GROUP BY account_id, kind`,
